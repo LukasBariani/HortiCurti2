@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: horticurti_db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: horticurti
+      POSTGRES_PASSWORD: horticurti123
+      POSTGRES_DB: horticurti
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  
