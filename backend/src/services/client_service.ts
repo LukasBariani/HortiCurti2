@@ -1,11 +1,11 @@
 import prisma from "../lib/prisma";
 
 export const createClient = async (data: any) => {
-  return await prisma.client.create( { data } );
+  return await prisma.client.create({ data });
 };
 
-export const deleteClient = async (id : string) => {
-  return await prisma.client.delete( { where : { id}   } );
+export const deleteClient = async (id: string) => {
+  return await prisma.client.delete({ where: { id } });
 };
 
 export const findAllClients = async () => {
@@ -13,5 +13,9 @@ export const findAllClients = async () => {
 };
 
 export const findCLientById = async (id: string) => {
-  return await prisma.client.findUnique({ where : { id } });
+  return await prisma.client.findUnique({ where: { id } });
+};
+
+export const findCLientByPhone = async (phone: string) => {
+  return await prisma.client.findUnique({ where: { whatsappNumber: phone } });
 };

@@ -29,7 +29,7 @@ NÃO aproxime, NÃO substitua, NÃO invente.
 {
   "items": [
     {
-      "product": "string",
+      "productName": "string",
       "quantity": number,
       "unit": "string"
     }
