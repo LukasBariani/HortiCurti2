@@ -65,6 +65,6 @@ export async function parseMessage(rawMessagem: any) {
     }
   } catch (error) {
     console.error("Erro ao chamar a API da Groq:", error);
-    return '{"items": []}';
+    return "{items: []}";
   }
 }

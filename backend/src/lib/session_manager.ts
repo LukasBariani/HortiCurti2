@@ -7,6 +7,8 @@ const clienteSessions = new Map<whatsappNumber, Sessao>();
 interface Sessao {
   estado: Estado;
   itensParsed: any[];
+  clienteId: string;
+  rawMessage: string;
 }
 
 export function getSession(whatsappNumber: whatsappNumber) {
@@ -14,6 +16,8 @@ export function getSession(whatsappNumber: whatsappNumber) {
     clienteSessions.set(whatsappNumber, {
       estado: 'IDLE',
       itensParsed: [],
+      clienteId: '',
+      rawMessage: '',
     });
   }
   return clienteSessions.get(whatsappNumber)!;
