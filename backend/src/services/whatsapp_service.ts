@@ -48,8 +48,6 @@ export function initZap() {
       console.log("msg.from replace:", msg.from.replace("@c.us", ""));
 
       const sessao = getSession(numeroLimpo);
-
-      // switch case fica aqui
       switch (sessao.estado) {
         case "IDLE":
           await handleIdle(msg, sessao, numeroLimpo);
@@ -59,6 +57,9 @@ export function initZap() {
           break;
         case "CONFIRMANDO":
           await handleConfirmando(msg, sessao, numeroLimpo, clienteEncontrado);
+          break;
+        case "EDITANDO":
+          await handleEditando(msg, sessao, numeroLimpo);
           break;
         default:
           msg.reply("Estado desconhecido.");
@@ -73,8 +74,9 @@ async function handleIdle(msg: any, sessao: any, numeroLimpo: any) {
   if (msg.body.trim() === "1") {
     setSession(numeroLimpo, { ...sessao, estado: "AGUARDANDO_PEDIDO" });
     msg.reply(
-      "Ótimo! 📝 Me manda seu pedido completo em uma mensagem.\nExemplo: 2 alface crespa, 1 kg cenoura, 3 cx tomate",
+      "Ótimo! 📝 Me manda seu pedido completo em uma mensagem.\nExemplo: 2 alface crespa, 1 kg cenoura, 3 cx tomate \n(ESCREVA O PEDIDO EM UMA SÓ MENSAGEM)",
     );
+  } else if (msg.body.trim() === "2") {
   } else {
     msg.reply(
       "Olá! 👋 Bem-vindo ao sistema de pedidos\nDigite uma opção:\n1 - Fazer pedido\n2 - Ver meus pedidos anteriores.",
@@ -154,20 +156,13 @@ async function handleConfirmando(
       msg.reply("Pedido confirmado! ✅ Obrigado pelo seu pedido.");
       break;
     case "editar":
-      await handleAguardadoPedido(msg, sessao, numeroLimpo);
+      await handleEditando(msg, sessao, numeroLimpo);
       break;
     default:
       msg.reply("Estado desconhecido.");
   }
-
-  // se confirmar, cria o pedido
-  const order = await createOrder({
-    clientId: sessao.clienteId,
-    shoppingDayId: shoppingDay.id,
-    rawMessage: sessao.rawMessage,
-    items: sessao.itensParsed,
-  });
 }
-async function handleEditando(sessao: any, numeroLimpo: any) {
-  console.log("EDITANDO");
+async function handleEditando(msg: any, sessao: any, numeroLimpo: any) {
+  client.sendMessage(msg.from, "Ok! Me manda seu pedido completo novamente.");
+  setSession(numeroLimpo, { ...sessao, estado: "EDITANDO" });
 }
