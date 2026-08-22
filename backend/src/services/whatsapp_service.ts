@@ -3,7 +3,7 @@ import qrcode from "qrcode-terminal";
 import { findCLientByPhone } from "./client_service";
 import { findOrCreateTodayShoppingDay } from "./shopDay_service";
 import { parseMessage } from "../services/aiParse_service";
-import { createOrder } from "./order_service";
+import { createOrder, findOrdersByClientId } from "./order_service";
 import { getSession, setSession, deleteSession } from "../lib/session_manager";
 
 const client = new Client({
@@ -77,6 +77,34 @@ async function handleIdle(msg: any, sessao: any, numeroLimpo: any) {
       "Ótimo! 📝 Me manda seu pedido completo em uma mensagem.\nExemplo: 2 alface crespa, 1 kg cenoura, 3 cx tomate \n(ESCREVA O PEDIDO EM UMA SÓ MENSAGEM)",
     );
   } else if (msg.body.trim() === "2") {
+    const contato = await msg.getContact();
+
+    const clienteEncontrado = await findCLientByPhone(contato.id.user);
+
+    const pedidosAnteriores = await findOrdersByClientId(clienteEncontrado!.id);
+
+    if (pedidosAnteriores.length === 0) {
+      msg.reply("Você não possui pedidos nos últimos 7 dias.");
+    } else {
+      const previaPedidosAnteriores = pedidosAnteriores
+        .map((pedido: any) => {
+          const dataFormatada = new Date(pedido.createdAt).toLocaleDateString(
+            "pt-BR",
+          );
+          console.log("Pedidos Anteriores");
+          const itensFormatados = pedido.items
+            .map(
+              (item: any) =>
+                `  • ${item.quantity}x ${item.productName} (${item.unit})`,
+            )
+            .join("\n");
+
+          return `📅 *Pedido de ${dataFormatada}*\n${itensFormatados}`;
+        })
+        .join("\n\n");
+
+      msg.reply(`*Seus Pedidos Anteriores:*\n\n${previaPedidosAnteriores}`);
+    }
   } else {
     msg.reply(
       "Olá! 👋 Bem-vindo ao sistema de pedidos\nDigite uma opção:\n1 - Fazer pedido\n2 - Ver meus pedidos anteriores.",
@@ -91,17 +119,15 @@ async function handleAguardadoPedido(msg: any, sessao: any, numeroLimpo: any) {
 
   if (!clienteEncontrado) {
     console.log(`Cliente não encontrado para: ${contato.id.user}`);
-    msg.reply(
-      "Desculpe, não consegui identificar seu cadastro. Entre em contato com o suporte.",
-    );
+    return;
     return;
   }
 
   const resultadoParse = await parseMessage(msg.body);
 
-  // Verifica se o resultado do parse está vazio
-  if (resultadoParse.items.length === 0) {
-    console.log("O retorno está vazia");
+  // Verifica se o resultado do parse falhou, veio nulo ou se o array de itens está vazio
+  if (!resultadoParse?.items || resultadoParse.items.length === 0) {
+    console.log("O retorno está vazio ou inválido.");
     msg.reply(
       "Desculpe, não consegui entender sua mensagem. Por favor, tente novamente.",
     );
@@ -164,5 +190,5 @@ async function handleConfirmando(
 }
 async function handleEditando(msg: any, sessao: any, numeroLimpo: any) {
   client.sendMessage(msg.from, "Ok! Me manda seu pedido completo novamente.");
-  setSession(numeroLimpo, { ...sessao, estado: "EDITANDO" });
+  setSession(numeroLimpo, { ...sessao, estado: "CONFIRMANDO" });
 }

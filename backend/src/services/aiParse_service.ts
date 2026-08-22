@@ -3,42 +3,37 @@ import { produtosValidos } from "../data/products";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const SYSTEM_PROMPT = `Você é um parser de pedidos de hortifrúti estritamente programado para retornar apenas JSON válido. Sua única tarefa é extrair os produtos, quantidades e unidades da mensagem do usuário.
-Se a mensagem não contiver um pedido válido, retorne: {"items": []}
-REGRA ABSOLUTA: você só pode usar produtos EXATAMENTE como aparecem na lista abaixo. 
-Se um produto mencionado pelo usuário não estiver nesta lista EXATA, 
-você DEVE ignorá-lo completamente e não incluí-lo no array "items".
-NÃO aproxime, NÃO substitua, NÃO invente.
-[LISTA DE PRODUTOS VÁLIDOS]  ${produtosValidos.join("\n- ")} Se a mensagem mencionar algo que não está na lista, voce deve ignorar esse item (não inventar)
-[DIRETRIZES DE FORMATAÇÃO]
-- Normalize as unidades de medida para os seguintes padrões:
-  * mço / maço / maco -> "maço"
-  * cx / caixa -> "caixa"
-  * kg / quilo / kls -> "kg"
-  * un / unidade / ud -> "unidade"
-  * sc / saco -> "saco"
-  * g / gramas -> "g"
-- Se a unidade não for especificada, use "unidade" como padrão.
-- Converta os valores numéricos por extenso para números (ex: "dois" -> 2).
+const SYSTEM_PROMPT = `Você é um extraidor de pedidos de hortifrúti focado em precisão absoluta. 
+Sua tarefa é ler a mensagem do cliente, identificar TODOS os produtos mencionados e converter em JSON.
 
-[RESTRIÇÕES CRÍTICAS]
-- Retorne APENAS o objeto JSON, sem markdown (\`\`\`json) e sem texto explicativo.
-- Se a mensagem não contiver um pedido válido, retorne: {"items": []}
+[LISTA DE PRODUTOS VÁLIDOS NO CATÁLOGO]
+${produtosValidos.map((p) => `- ${p}`).join("\n")}
 
-[ESQUEMA DO JSON]
+[REGRAS DE EXTRAÇÃO]
+1. EXTRAIA TODOS OS ITENS: Nunca ignore produtos listados na mensagem (ex: se o usuário pediu 2 itens, extraia os 2).
+2. CASAMENTO DE NOME (MATCH): O "productName" DEVE ser EXATAMENTE um dos nomes da lista acima. Se o cliente escrever apenas "tomate" e na lista existir "Tomate", use "Tomate". Se não houver correspondência clara, ignore o item.
+3. UNIDADES DE MEDIDA:
+   - mço / maço / maco -> "maço"
+   - cx / caixa -> "caixa"
+   - kg / quilo / kls -> "kg"
+   - un / unidade / ud -> "unidade"
+   - sc / saco -> "saco"
+   - g / gramas -> "g"
+   - Se a unidade não for citada, use "unidade" como padrão.
+4. NÚMEROS: Converta palavras por extenso em números inteiros (ex: "três" -> 3).
+
+[FORMATO DE SAÍDA - APENAS JSON VÁLIDO]
 {
   "items": [
     {
-      "productName": "string",
-      "quantity": number,
-      "unit": "string"
+      "productName": "Nome Exato da Lista",
+      "quantity": 2,
+      "unit": "unidade"
     }
   ]
 }
-  REGRA ABSOLUTA: você só pode usar produtos EXATAMENTE como aparecem na lista abaixo. 
-Se um produto mencionado pelo usuário não estiver nesta lista EXATA, 
-você DEVE ignorá-lo completamente e não incluí-lo no array "items".
-NÃO aproxime, NÃO substitua, NÃO invente.`;
+
+Se nenhum produto da lista for encontrado na mensagem, retorne exatamente: {"items": []}`;
 
 export async function parseMessage(rawMessagem: any) {
   try {
@@ -53,7 +48,7 @@ export async function parseMessage(rawMessagem: any) {
           content: rawMessagem,
         },
       ],
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       response_format: { type: "json_object" }, // retorno em JSON
       temperature: 0.1,
     });
@@ -65,6 +60,6 @@ export async function parseMessage(rawMessagem: any) {
     }
   } catch (error) {
     console.error("Erro ao chamar a API da Groq:", error);
-    return "{items: []}";
+    return { items: [] };
   }
 }
