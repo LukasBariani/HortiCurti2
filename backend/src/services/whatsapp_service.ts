@@ -190,5 +190,5 @@ async function handleConfirmando(
 }
 async function handleEditando(msg: any, sessao: any, numeroLimpo: any) {
   client.sendMessage(msg.from, "Ok! Me manda seu pedido completo novamente.");
-  setSession(numeroLimpo, { ...sessao, estado: "CONFIRMANDO" });
+  setSession(numeroLimpo, { ...sessao, estado: "EDITANDO" });
 }

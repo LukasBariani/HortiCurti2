@@ -9,9 +9,16 @@ Sua tarefa é ler a mensagem do cliente, identificar TODOS os produtos mencionad
 [LISTA DE PRODUTOS VÁLIDOS NO CATÁLOGO]
 ${produtosValidos.map((p) => `- ${p}`).join("\n")}
 
+[APELIDOS COMUNS (MAPEAMENTO DE TERMOS POPULARES)]
+- tomate → Tomate Salada
+- alface → Alface Crespa
+- banana → Banana Nanica
+- pé de alface → Alface Crespa
+*(Use esta tabela de referência para traduzir o termo coloquial do cliente para o produto correspondente da lista).*
+
 [REGRAS DE EXTRAÇÃO]
 1. EXTRAIA TODOS OS ITENS: Nunca ignore produtos listados na mensagem (ex: se o usuário pediu 2 itens, extraia os 2).
-2. CASAMENTO DE NOME (MATCH): O "productName" DEVE ser EXATAMENTE um dos nomes da lista acima. Se o cliente escrever apenas "tomate" e na lista existir "Tomate", use "Tomate". Se não houver correspondência clara, ignore o item.
+2. CASAMENTO DE NOME (MATCH): O "productName" DEVE ser EXATAMENTE um dos nomes da lista de catálogo acima. Consulte a seção de apelidos se necessário. Se não houver correspondência clara ou apelido mapeado, ignore o item.
 3. UNIDADES DE MEDIDA:
    - mço / maço / maco -> "maço"
    - cx / caixa -> "caixa"
