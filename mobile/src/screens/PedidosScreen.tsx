@@ -1,3 +1,4 @@
+// src/screens/PedidosScreen.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -5,10 +6,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getOrdersToday } from '../services/api';
 
 interface ItemPedido {
@@ -54,7 +55,7 @@ export default function PedidosScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
 
       <View style={styles.header}>
@@ -154,6 +155,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+    paddingBottom: 20,
   },
   orderCard: {
     backgroundColor: '#FFFFFF',
