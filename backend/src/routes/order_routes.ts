@@ -1,20 +1,17 @@
-import { Router } from "express";
-import * as controller from "../controllers/order_controller"
-
+import { Router } from 'express';
+import * as controller from '../controllers/order_controller';
 
 const router = Router();
 
-//post
+// post
 router.post('/', controller.createOrder);
 
-//gett
+// get
 router.get('/', controller.getAllOrders);
-router.get('/:id', controller.getOrderById);
 
+router.get('/today', controller.getTodayOrders);
 
-//delete
+// delete
 router.delete('/:id', controller.deleteOrder);
-
-
 
 export default router;

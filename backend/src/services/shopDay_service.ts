@@ -25,7 +25,7 @@ export const getTodayConsolidatedList = async () => {
     where: {
       shoppingDayId: Today.id,
     },
-    include: { items: true },
+    include: { items: true, client: true },
   });
 
   for (const order of orders) {
@@ -36,6 +36,10 @@ export const getTodayConsolidatedList = async () => {
         consolidado.set(item.productName, {
           ...atual,
           totalQuantity: atual.totalQuantity + item.quantity,
+          clientes: [
+            ...atual.clientes,
+            { nome: order.client.name, quantidade: item.quantity },
+          ],
         });
       } else {
         // produto novo — adiciona pela primeira vez
@@ -43,6 +47,7 @@ export const getTodayConsolidatedList = async () => {
           productName: item.productName,
           unit: item.unit,
           totalQuantity: item.quantity,
+          clientes: [{ nome: order.client.name, quantidade: item.quantity }],
         });
       }
     }

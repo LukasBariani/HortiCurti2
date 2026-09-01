@@ -42,6 +42,10 @@ export const getTodayConsolidatedList = async (req: Request, res: Response) => {
     const httpResponse = await service.getTodayConsolidatedList();
     res.status(200).json(httpResponse);
   } catch (error) {
-    res.status(500).json({ error: 'Erro interno' });
+    console.error(error);
+
+    res.status(500).json({
+      error: 'Erro interno no shopDay_controller',
+    });
   }
 };

@@ -19,6 +19,11 @@ function createApp() {
 
   app.use(express.json());
 
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+  });
+
   //routs
   app.use('/clients', clientsRouter);
   app.use('/shopDay', shopDayRouter);
