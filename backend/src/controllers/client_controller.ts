@@ -1,5 +1,6 @@
 import * as service from "../services/client_service"
 import { Request, Response } from "express"
+import { findOrdersByClientId } from '../services/order_service';
 
 export const getAllClients = async (req: Request, res: Response) => {
     try {
@@ -34,6 +35,13 @@ export const deleteClient = async (req: Request, res: Response) => {
         const httpResponse = await service.deleteClient(req.params.id as string)
         res.status(200).json(httpResponse)
     } catch (error) {
+        res.status(500).json({ error: "Erro interno" })
+    }
+}
+export const getClientOrders = async (req: Request, res: Response) => {
+    try {
+        res.status(200).json(await findOrdersByClientId(req.params.id as string))
+    } catch {
         res.status(500).json({ error: "Erro interno" })
     }
 }

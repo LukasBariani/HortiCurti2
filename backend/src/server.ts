@@ -1,5 +1,5 @@
-import createApp from './app';
 import 'dotenv/config';
+import createApp from './app';
 import { initZap } from './services/whatsapp_service';
 
 //variaveis

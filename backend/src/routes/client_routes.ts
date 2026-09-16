@@ -9,6 +9,7 @@ router.post('/', controller.createClient);
 
 //gett
 router.get('/', controller.getAllClients);
+router.get('/:id/orders', controller.getClientOrders);
 router.get('/:id', controller.getClientById);
 
 

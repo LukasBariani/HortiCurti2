@@ -4,6 +4,8 @@ import clientsRouter from './routes/client_routes';
 import shopDayRouter from './routes/shopDay_routes';
 import orderRouter from './routes/order_routes';
 import rawMessageRouter from './routes/rawMessage_routes';
+import dashboardRouter from './routes/dashboard_routes';
+import orderItemRouter from './routes/orderItem_routes';
 
 function createApp() {
   const app = express();
@@ -12,7 +14,7 @@ function createApp() {
     cors({
       origin: '*',
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
     }),
   );
@@ -29,6 +31,8 @@ function createApp() {
   app.use('/shopDay', shopDayRouter);
   app.use('/order', orderRouter);
   app.use('/parse-message', rawMessageRouter);
+  app.use('/dashboard', dashboardRouter);
+  app.use('/order-items', orderItemRouter);
   return app;
 }
 

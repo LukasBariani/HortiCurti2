@@ -3,3 +3,7 @@ dist/
 .env
 
 /src/generated/prisma
+
+# Local work products and rendered previews
+/backend/work/
+/tmp/

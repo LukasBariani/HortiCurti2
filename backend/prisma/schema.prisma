@@ -13,11 +13,12 @@ datasource db {
 }
 
 model Client {
-  id            String   @id @default(uuid())
-  name          String
-  whatsappNumber String  @unique
-  createdAt     DateTime @default(now())
-  orders        Order[]
+  id             String            @id @default(uuid())
+  name           String
+  whatsappNumber String            @unique
+  createdAt      DateTime          @default(now())
+  orders         Order[]
+  backorders     ClientBackorder[]
 }
 
 model ShoppingDay {
@@ -29,20 +30,62 @@ model ShoppingDay {
 }
 
 model Order {
-  id            String      @id @default(uuid())
-  client        Client      @relation(fields: [clientId], references: [id])
+  id                   String            @id @default(uuid())
+  client               Client            @relation(fields: [clientId], references: [id])
+  clientId             String
+  shoppingDay          ShoppingDay       @relation(fields: [shoppingDayId], references: [id])
+  shoppingDayId        String
+  rawMessage           String
+  status               String            @default("pending")
+  createdAt            DateTime          @default(now())
+  items                OrderItem[]
+  deliveryDate         DateTime          @db.Date
+  version              Int               @default(0)
+  deliveredAt          DateTime?
+  history              OrderHistory[]
+  originatedBackorders ClientBackorder[] @relation("BackorderSourceOrder")
+  receivedBackorders   ClientBackorder[] @relation("BackorderTargetOrder")
+
+  @@index([deliveryDate])
+  @@index([status, deliveredAt])
+}
+
+model ClientBackorder {
+  id            String    @id @default(uuid())
   clientId      String
-  shoppingDay   ShoppingDay @relation(fields: [shoppingDayId], references: [id])
-  shoppingDayId String
-  rawMessage    String
-  status        String      @default("pending")
-  createdAt     DateTime    @default(now())
-  items         OrderItem[]
+  client        Client    @relation(fields: [clientId], references: [id])
+  sourceOrderId String
+  sourceOrder   Order     @relation("BackorderSourceOrder", fields: [sourceOrderId], references: [id])
+  targetOrderId String?
+  targetOrder   Order?    @relation("BackorderTargetOrder", fields: [targetOrderId], references: [id])
+  productName   String
+  quantity      Float
+  unit          String
+  status        String    @default("pending")
+  createdAt     DateTime  @default(now())
+  transferredAt DateTime?
+
+  @@index([clientId, status])
+  @@index([sourceOrderId])
+  @@index([targetOrderId])
+}
+
+model OrderHistory {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  action    String
+  actor     String
+  before    Json?
+  after     Json
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
 }
 
 model OrderItem {
-  id          String  @id @default(uuid())
-  order       Order   @relation(fields: [orderId], references: [id])
+  id          String @id @default(uuid())
+  order       Order  @relation(fields: [orderId], references: [id])
   orderId     String
   productName String
   quantity    Float

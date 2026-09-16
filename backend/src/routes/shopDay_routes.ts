@@ -7,6 +7,7 @@ router.post('/', controller.createShopDay);
 
 //get
 router.get('/', controller.getAllShopDay);
+router.get('/consolidated', controller.getConsolidatedByDeliveryDate);
 router.get('/:id', controller.getShopDayById);
 
 //delete

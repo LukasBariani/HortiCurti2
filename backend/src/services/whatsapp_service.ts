@@ -1,194 +1,34 @@
-import { Client, LocalAuth } from "whatsapp-web.js";
-import qrcode from "qrcode-terminal";
-import { findCLientByPhone } from "./client_service";
-import { findOrCreateTodayShoppingDay } from "./shopDay_service";
-import { parseMessage } from "../services/aiParse_service";
-import { createOrder, findOrdersByClientId } from "./order_service";
-import { getSession, setSession, deleteSession } from "../lib/session_manager";
+import { Client, LocalAuth } from 'whatsapp-web.js';
+import qrcode from 'qrcode-terminal';
+import { findCLientByPhone } from './client_service';
+import { parseMessage } from './aiParse_service';
+import { createOrder, findOrdersByClientId } from './order_service';
+import { createOrderConversation } from './order_conversation';
 
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
-    executablePath: "/usr/bin/google-chrome",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    executablePath: '/usr/bin/google-chrome',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
 });
+const handleMessage = createOrderConversation({ parseMessage, createOrder: (data) => createOrder(data, 'whatsapp'), findOrdersByClientId });
 
 export function initZap() {
-  client.on("qr", (qr: any) => {
-    qrcode.generate(qr, { small: true });
-  });
-
-  client.on("ready", () => {
-    console.log("Zap Conectado!");
-  });
-
-  client.on("message", async (msg: any) => {
-    if (!msg.body?.trim()) {
-      return;
-    }
-    if (!msg.from.endsWith("@c.us") && !msg.from.endsWith("@lid")) return; // verifica se a mensagem é de um contato válido (se n é de grupo ou de um bot)
-    if (msg.fromMe) return;
-
-    const contato = await msg.getContact();
-
-    const numeroLimpo = msg.from.replace("@c.us", "").replace("@lid", "");
-    // Verifica se a mensagem é de um contato válido
-    const clienteEncontrado = await findCLientByPhone(contato.id.user);
-    if (!clienteEncontrado) {
-      console.log(
-        `Mensagem recebida de: ${numeroLimpo} (${contato.pushname || "Sem nome"})`,
-      );
-      console.log(`---Cliente não cadastrado: ${numeroLimpo}---`);
-      return;
-    } else {
-      console.log("contato.number:", contato.number);
-      console.log("contato.id.user:", contato.id.user);
-      console.log("msg.from:", msg.from);
-      console.log("msg.from replace:", msg.from.replace("@c.us", ""));
-
-      const sessao = getSession(numeroLimpo);
-      switch (sessao.estado) {
-        case "IDLE":
-          await handleIdle(msg, sessao, numeroLimpo);
-          break;
-        case "AGUARDANDO_PEDIDO":
-          await handleAguardadoPedido(msg, sessao, numeroLimpo);
-          break;
-        case "CONFIRMANDO":
-          await handleConfirmando(msg, sessao, numeroLimpo, clienteEncontrado);
-          break;
-        case "EDITANDO":
-          await handleEditando(msg, sessao, numeroLimpo);
-          break;
-        default:
-          msg.reply("Estado desconhecido.");
-      }
+  client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
+  client.on('ready', () => console.log('Zap Conectado!'));
+  client.on('message', async (msg) => {
+    if (!msg.body?.trim() || msg.fromMe) return;
+    if (!msg.from.endsWith('@c.us') && !msg.from.endsWith('@lid')) return;
+    try {
+      const contact = await msg.getContact();
+      const customer = await findCLientByPhone(contact.id.user);
+      if (!customer) return;
+      await handleMessage(msg, msg.from, customer.id);
+    } catch (error) {
+      console.error('Erro ao processar mensagem do WhatsApp:', error);
+      await msg.reply('Não consegui processar sua mensagem agora. Tente novamente.').catch(console.error);
     }
   });
-  client.initialize();
-}
-
-//esperando msg
-async function handleIdle(msg: any, sessao: any, numeroLimpo: any) {
-  if (msg.body.trim() === "1") {
-    setSession(numeroLimpo, { ...sessao, estado: "AGUARDANDO_PEDIDO" });
-    msg.reply(
-      "Ótimo! 📝 Me manda seu pedido completo em uma mensagem.\nExemplo: 2 alface crespa, 1 kg cenoura, 3 cx tomate \n(ESCREVA O PEDIDO EM UMA SÓ MENSAGEM)",
-    );
-  } else if (msg.body.trim() === "2") {
-    const contato = await msg.getContact();
-
-    const clienteEncontrado = await findCLientByPhone(contato.id.user);
-
-    const pedidosAnteriores = await findOrdersByClientId(clienteEncontrado!.id);
-
-    if (pedidosAnteriores.length === 0) {
-      msg.reply("Você não possui pedidos nos últimos 7 dias.");
-    } else {
-      const previaPedidosAnteriores = pedidosAnteriores
-        .map((pedido: any) => {
-          const dataFormatada = new Date(pedido.createdAt).toLocaleDateString(
-            "pt-BR",
-          );
-          console.log("Pedidos Anteriores");
-          const itensFormatados = pedido.items
-            .map(
-              (item: any) =>
-                `  • ${item.quantity}x ${item.productName} (${item.unit})`,
-            )
-            .join("\n");
-
-          return `📅 *Pedido de ${dataFormatada}*\n${itensFormatados}`;
-        })
-        .join("\n\n");
-
-      msg.reply(`*Seus Pedidos Anteriores:*\n\n${previaPedidosAnteriores}`);
-    }
-  } else {
-    msg.reply(
-      "Olá! 👋 Bem-vindo ao sistema de pedidos\nDigite uma opção:\n1 - Fazer pedido\n2 - Ver meus pedidos anteriores.",
-    );
-    return;
-  }
-}
-
-async function handleAguardadoPedido(msg: any, sessao: any, numeroLimpo: any) {
-  const contato = await msg.getContact();
-  const clienteEncontrado = await findCLientByPhone(contato.id.user);
-
-  if (!clienteEncontrado) {
-    console.log(`Cliente não encontrado para: ${contato.id.user}`);
-    return;
-    return;
-  }
-
-  const resultadoParse = await parseMessage(msg.body);
-
-  // Verifica se o resultado do parse falhou, veio nulo ou se o array de itens está vazio
-  if (!resultadoParse?.items || resultadoParse.items.length === 0) {
-    console.log("O retorno está vazio ou inválido.");
-    msg.reply(
-      "Desculpe, não consegui entender sua mensagem. Por favor, tente novamente.",
-    );
-    return;
-  }
-
-  console.log(
-    `Mensagem recebida de: ${numeroLimpo} (${contato.pushname || "Sem nome"})`,
-  );
-  console.log(JSON.stringify(resultadoParse, null, 2));
-  console.log(`Texto: ${msg.body}`);
-
-  // monta a prévia formatada
-  const previa = resultadoParse.items
-    .map(
-      (item: any) => `- ${item.quantity}x ${item.productName} (${item.unit})`,
-    )
-    .join("\n");
-
-  // salva itens na sessão e muda estado
-  setSession(numeroLimpo, {
-    ...sessao,
-    estado: "CONFIRMANDO",
-    itensParsed: resultadoParse.items,
-    clienteId: clienteEncontrado.id,
-    rawMessage: msg.body,
-  });
-
-  msg.reply(
-    `Seu pedido:\n${previa}\n\nDigite *confirmar* para finalizar ou *editar* para corrigir.`,
-  );
-}
-
-async function handleConfirmando(
-  msg: any,
-  sessao: any,
-  numeroLimpo: any,
-  cliente: any,
-) {
-  console.log("CONFIRMANDO");
-  const shoppingDay = await findOrCreateTodayShoppingDay();
-
-  switch (msg.body.trim().toLowerCase()) {
-    case "confirmar":
-      await createOrder({
-        clientId: sessao.clienteId,
-        shoppingDayId: shoppingDay.id,
-        rawMessage: sessao.rawMessage,
-        items: sessao.itensParsed,
-      });
-      deleteSession(numeroLimpo);
-      msg.reply("Pedido confirmado! ✅ Obrigado pelo seu pedido.");
-      break;
-    case "editar":
-      await handleEditando(msg, sessao, numeroLimpo);
-      break;
-    default:
-      msg.reply("Estado desconhecido.");
-  }
-}
-async function handleEditando(msg: any, sessao: any, numeroLimpo: any) {
-  client.sendMessage(msg.from, "Ok! Me manda seu pedido completo novamente.");
-  setSession(numeroLimpo, { ...sessao, estado: "EDITANDO" });
+  client.initialize().catch((error) => console.error('Erro ao conectar WhatsApp:', error));
 }

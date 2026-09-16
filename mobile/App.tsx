@@ -1,110 +1,88 @@
 // App.tsx
 import { StatusBar } from 'expo-status-bar';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
-import { StyleSheet, Text, Platform } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ListaDiaScreen from './src/screens/ListaDiaScreen';
 import ClientesScreen from './src/screens/ClientesScreen';
 import PedidosScreen from './src/screens/PedidosScreen';
 import PrecificacaoScreen from './src/screens/PrecificacaoScreen';
+import ChartsScreen from './src/screens/ChartsScreen';
+import ClientDetailScreen from './src/screens/ClientDetailScreen';
+import { ThemeProvider, useTheme } from './src/theme';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function ClientsStack() {
+  return <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ClientsList" component={ClientesScreen} />
+    <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
+  </Stack.Navigator>;
+}
 
 function AppNavigator() {
+  const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+  const navigationTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+    },
+  };
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-      <NavigationContainer>
+      <NavigationContainer theme={navigationTheme}>
         <Tab.Navigator
           screenOptions={({ route }) => ({
+            headerShown: false,
             tabBarIcon: ({ focused, color, size }) => {
-              let icon;
-              if (route.name === 'Lista do Dia') {
-                icon = '📋';
-              } else if (route.name === 'Clientes') {
-                icon = '👥';
-              } else if (route.name === 'Pedidos') {
-                icon = '📦';
-              } else if (route.name === 'Precificação') {
-                icon = '💰';
-              }
-              return <Text style={{ fontSize: size, color }}>{icon}</Text>;
+              const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+                Resumo: focused ? 'grid' : 'grid-outline', Lista: focused ? 'checkbox' : 'checkbox-outline',
+                Pedidos: focused ? 'receipt' : 'receipt-outline', Preços: focused ? 'pricetags' : 'pricetags-outline',
+                Clientes: focused ? 'people' : 'people-outline',
+              };
+              return <Ionicons name={icons[route.name]} size={size} color={color} />;
             },
-            tabBarActiveTintColor: '#2C7BE5',
-            tabBarInactiveTintColor: '#9CA3AF',
+            tabBarActiveTintColor: colors.primary,
+            tabBarInactiveTintColor: colors.muted,
             tabBarStyle: {
-              backgroundColor: '#FFFFFF',
-              borderTopWidth: 1,
-              borderTopColor: '#E5E7EB',
-              height: Platform.OS === 'ios' ? 85 : 65,
-              paddingBottom: Platform.OS === 'ios' ? 20 : 5,
-              paddingTop: 5,
+              backgroundColor: colors.surface, borderTopColor: colors.border,
+              height: 62 + Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 8),
+              paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 8),
+              paddingTop: 8,
             },
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: '500',
-              marginTop: -4,
-            },
-            headerStyle: {
-              backgroundColor: '#FFFFFF',
-              borderBottomWidth: 1,
-              borderBottomColor: '#E5E7EB',
-            },
-            headerTintColor: '#1F2937',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-              fontSize: 18,
-            },
+            tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
           })}
         >
-          <Tab.Screen
-            name="Lista do Dia"
-            component={ListaDiaScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Tab.Screen
-            name="Clientes"
-            component={ClientesScreen}
-            options={{
-              headerShown: true,
-              title: 'Clientes',
-            }}
-          />
-          <Tab.Screen
-            name="Pedidos"
-            component={PedidosScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Tab.Screen
-            name="Precificação"
-            component={PrecificacaoScreen}
-            options={{
-              headerShown: true,
-              title: 'Precificação',
-            }}
-          />
+          <Tab.Screen name="Resumo" component={ChartsScreen} />
+          <Tab.Screen name="Lista" component={ListaDiaScreen} />
+          <Tab.Screen name="Pedidos" component={PedidosScreen} />
+          <Tab.Screen name="Preços" component={PrecificacaoScreen} />
+          <Tab.Screen name="Clientes" component={ClientsStack} />
         </Tab.Navigator>
       </NavigationContainer>
-    </SafeAreaView>
   );
 }
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <AppNavigator />
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-});
+function ThemedApp() {
+  const { isDark } = useTheme();
+  return <><StatusBar style={isDark ? 'light' : 'dark'} /><AppNavigator /></>;
+}

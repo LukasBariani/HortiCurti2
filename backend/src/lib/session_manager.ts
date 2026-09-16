@@ -1,14 +1,21 @@
-type Estado = 'IDLE' | 'AGUARDANDO_PEDIDO' | 'CONFIRMANDO' | 'EDITANDO';
+type Estado = 'IDLE' | 'AGUARDANDO_PEDIDO' | 'AGUARDANDO_DATA' | 'CONFIRMANDO' | 'EDITANDO';
+
+export interface ParsedItem {
+  productName: string;
+  quantity: number;
+  unit: string;
+}
 
 type whatsappNumber = string;
 
 const clienteSessions = new Map<whatsappNumber, Sessao>();
 
-interface Sessao {
+export interface Sessao {
   estado: Estado;
-  itensParsed: any[];
+  itensParsed: ParsedItem[];
   clienteId: string;
   rawMessage: string;
+  deliveryDate: string;
 }
 
 export function getSession(whatsappNumber: whatsappNumber) {
@@ -18,6 +25,7 @@ export function getSession(whatsappNumber: whatsappNumber) {
       itensParsed: [],
       clienteId: '',
       rawMessage: '',
+      deliveryDate: '',
     });
   }
   return clienteSessions.get(whatsappNumber)!;
