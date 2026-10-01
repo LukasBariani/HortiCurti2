@@ -16,6 +16,7 @@ model Client {
   id             String            @id @default(uuid())
   name           String
   whatsappNumber String            @unique
+  defaultMarkupPercent Float?
   createdAt      DateTime          @default(now())
   orders         Order[]
   backorders     ClientBackorder[]
@@ -40,6 +41,7 @@ model Order {
   createdAt            DateTime          @default(now())
   items                OrderItem[]
   deliveryDate         DateTime          @db.Date
+  pricingMarkupPercent Float?
   version              Int               @default(0)
   deliveredAt          DateTime?
   history              OrderHistory[]

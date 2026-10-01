@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "HortiCurti",
+    "slug": "horticurti",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,19 +10,37 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.horticurti.app",
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
-    ]
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://100.123.207.8:3000",
+      "eas": {
+        "projectId": "5f723414-2230-4514-a3a8-35d06d881c73"
+      }
+    },
+    "owner": "lukinhas_games"
   }
 }

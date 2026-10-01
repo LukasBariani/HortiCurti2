@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { todayInSaoPaulo } from '../utils/deliveryDate';
+import { describeApiError } from '../services/api';
 
 export function useDeliveryData<T>(load: (date: string) => Promise<T[]>) {
   const [today, setToday] = useState(todayInSaoPaulo);
@@ -29,8 +30,8 @@ export function useDeliveryData<T>(load: (date: string) => Promise<T[]>) {
     try {
       const result = await load(selection ?? currentDay);
       if (id === request.current) setData(result);
-    } catch {
-      if (id === request.current) setError('Não foi possível carregar as entregas. Toque em Atualizar para tentar novamente.');
+    } catch (cause) {
+      if (id === request.current) setError(`${describeApiError(cause)} Toque em Atualizar para tentar novamente.`);
     } finally {
       if (id === request.current) setLoading(false);
     }

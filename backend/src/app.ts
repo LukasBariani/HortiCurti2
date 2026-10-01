@@ -6,6 +6,7 @@ import orderRouter from './routes/order_routes';
 import rawMessageRouter from './routes/rawMessage_routes';
 import dashboardRouter from './routes/dashboard_routes';
 import orderItemRouter from './routes/orderItem_routes';
+import healthRouter from './routes/health_routes';
 
 function createApp() {
   const app = express();
@@ -33,6 +34,7 @@ function createApp() {
   app.use('/parse-message', rawMessageRouter);
   app.use('/dashboard', dashboardRouter);
   app.use('/order-items', orderItemRouter);
+  app.use('/health', healthRouter);
   return app;
 }
 

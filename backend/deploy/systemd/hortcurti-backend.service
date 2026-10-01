@@ -1,0 +1,21 @@
+[Unit]
+Description=HortiCurti API e bot do WhatsApp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/lukas/Documents/Codex/HortCurti/backend
+Environment=NODE_ENV=production
+Environment=HOST=0.0.0.0
+Environment=PORT=3000
+Environment=PATH=/home/lukas/.nvm/versions/node/v24.17.0/bin:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/docker compose up -d --wait
+ExecStartPre=/home/lukas/Documents/Codex/HortCurti/backend/node_modules/.bin/prisma migrate deploy
+ExecStart=/home/lukas/.nvm/versions/node/v24.17.0/bin/node /home/lukas/Documents/Codex/HortCurti/backend/dist/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+
+[Install]
+WantedBy=default.target

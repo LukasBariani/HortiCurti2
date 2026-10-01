@@ -1,14 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Modal, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import ClientFormModal from '../components/ClientFormModal';
 import ScreenHeader from '../components/ScreenHeader';
 import StateView from '../components/StateView';
-import { createClient, getClients } from '../services/api';
+import { getClients } from '../services/api';
 import { shadows, ThemeColors, useTheme, useThemedStyles } from '../theme';
 
-interface Client { id: string; name: string; whatsappNumber: string; createdAt: string }
+interface Client { id: string; name: string; whatsappNumber: string; createdAt: string; defaultMarkupPercent?: number | null }
 export default function ClientesScreen({ navigation }: any) {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -16,25 +17,15 @@ export default function ClientesScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', whatsappNumber: '' });
   const load = useCallback(async () => { setLoading(true); setError(''); try { setClients(await getClients()); } catch { setError('Confira a conexão com o backend.'); } finally { setLoading(false); } }, []);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
-  const submit = async () => {
-    const name = form.name.trim(), whatsappNumber = form.whatsappNumber.replace(/\D/g, '');
-    if (!name || whatsappNumber.length < 10) return Alert.alert('Confira os dados', 'Informe o nome e um WhatsApp com DDD.');
-    setSaving(true);
-    try { await createClient({ name, whatsappNumber }); setOpen(false); setForm({ name: '', whatsappNumber: '' }); await load(); }
-    catch { Alert.alert('Erro', 'Não foi possível cadastrar o cliente. Confira se o número já existe.'); }
-    finally { setSaving(false); }
-  };
   return <SafeAreaView style={styles.screen} edges={['top']}>
     <ScreenHeader title="Clientes" subtitle={`${clients.length} clientes cadastrados`} action={<TouchableOpacity accessibilityLabel="Adicionar cliente" onPress={() => setOpen(true)} style={styles.add}><Ionicons name="add" size={23} color="#FFF" /></TouchableOpacity>} />
     <FlatList data={clients} keyExtractor={(item) => item.id} contentContainerStyle={styles.list}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />}
       ListEmptyComponent={<StateView loading={loading} error={error} empty={!loading && !error ? 'Nenhum cliente cadastrado' : undefined} onRetry={load} />}
-      renderItem={({ item }) => <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ClientDetail', { clientId: item.id })}><View style={styles.avatar}><Text style={styles.avatarText}>{item.name[0]?.toUpperCase()}</Text></View><View style={styles.copy}><Text style={styles.name}>{item.name}</Text><Text style={styles.phone}>{item.whatsappNumber}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.muted} /></TouchableOpacity>} />
-    <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}><View style={styles.overlay}><View style={styles.sheet}><View style={styles.modalHeader}><Text style={styles.modalTitle}>Novo cliente</Text><TouchableOpacity onPress={() => setOpen(false)}><Ionicons name="close" size={25} color={colors.muted} /></TouchableOpacity></View><Text style={styles.label}>Nome</Text><TextInput value={form.name} onChangeText={(name) => setForm({ ...form, name })} placeholder="Nome do estabelecimento" placeholderTextColor={colors.muted} style={styles.input} /><Text style={styles.label}>WhatsApp</Text><TextInput value={form.whatsappNumber} onChangeText={(whatsappNumber) => setForm({ ...form, whatsappNumber })} keyboardType="phone-pad" placeholder="DDD + número" placeholderTextColor={colors.muted} style={styles.input} /><TouchableOpacity disabled={saving} onPress={submit} style={styles.submit}><Text style={styles.submitText}>{saving ? 'Salvando…' : 'Cadastrar cliente'}</Text></TouchableOpacity></View></View></Modal>
+      renderItem={({ item }) => <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ClientDetail', { clientId: item.id })}><View style={styles.avatar}><Text style={styles.avatarText}>{item.name[0]?.toUpperCase()}</Text></View><View style={styles.copy}><Text style={styles.name}>{item.name}</Text><Text style={styles.phone}>{item.whatsappNumber}</Text><Text style={styles.phone}>{item.defaultMarkupPercent == null ? 'Acréscimo não definido' : `Acréscimo padrão: ${item.defaultMarkupPercent.toLocaleString('pt-BR')}%`}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.muted} /></TouchableOpacity>} />
+    {open && <ClientFormModal onClose={() => setOpen(false)} onSaved={() => { void load(); }} />}
   </SafeAreaView>;
 }
 const createStyles = (colors: ThemeColors) => ({

@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Alert, FlatList, Modal, ScrollView, RefreshControl, Switch, TextInput, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import OrderPricingModal, { PricingOrder } from '../components/OrderPricingModal';
 import DeliveryDateSelector from '../components/DeliveryDateSelector';
 import ScreenHeader from '../components/ScreenHeader';
 import StateView from '../components/StateView';
@@ -10,13 +11,13 @@ import { deliverOrder, editOrder, getOrdersByDeliveryDate, OrderMutationError, u
 import { formatDeliveryDate, todayInSaoPaulo } from '../utils/deliveryDate';
 import { shadows, ThemeColors, useTheme, useThemedStyles } from '../theme';
 
-interface Item { id: string; productName: string; quantity: number; unit: string }
+interface Item { costPrice?: number | null; salePrice?: number | null; id: string; productName: string; quantity: number; unit: string }
 type Status = 'pending' | 'delivered' | 'cancelled';
 const labels: Record<Status, string> = { pending: 'Pendente', delivered: 'Entregue', cancelled: 'Cancelado' };
 interface Backorder { id: string; productName: string; quantity: number; unit: string; status: 'pending' | 'transferred' }
 interface Snapshot { status: Status; deliveryDate: string; items: Item[]; originatedBackorders?: Backorder[] }
 interface History { id: string; action: string; actor: string; createdAt: string; before?: Snapshot; after?: Snapshot }
-interface Order { id: string; client: { name: string }; items: Item[]; deliveryDate: string; status: Status; version: number; history?: History[]; originatedBackorders?: Backorder[]; receivedBackorders?: Backorder[] }
+interface Order { id: string; pricingMarkupPercent?: number | null; client: { name: string; defaultMarkupPercent?: number | null }; items: Item[]; deliveryDate: string; status: Status; version: number; history?: History[]; originatedBackorders?: Backorder[]; receivedBackorders?: Backorder[] }
 interface Draft { order: Order; date: string; items: (Item & { input: string })[] }
 interface DeliveryDraft { order: Order; items: (Item & { missing: string; carryForward: boolean })[] }
 function describeChanges(event: History): string[] {
@@ -43,6 +44,7 @@ export default function PedidosScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const { date, setDate, data: orders, loading, error, refresh } = useDeliveryData<Order>(getOrdersByDeliveryDate);
+  const [pricing, setPricing] = useState<PricingOrder | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -100,6 +102,7 @@ export default function PedidosScreen() {
             {!!item.receivedBackorders?.length && <View style={styles.carryNotice}><Ionicons name="return-down-forward-outline" color={colors.primary} size={18} /><Text style={styles.carryText}>Inclui {item.receivedBackorders.length} pendência(s) de entrega anterior.</Text></View>}
             {item.status === 'pending' && <TouchableOpacity disabled={busy} style={styles.primary} onPress={() => setDeliveryDraft({ order: item, items: item.items.map(product => ({ ...product, missing: '0', carryForward: false })) })}><Ionicons name="checkmark-circle-outline" color={colors.background} size={20} /><Text style={styles.primaryText}>Conferir e entregar</Text></TouchableOpacity>}
             <View style={styles.actions}>
+              {item.status === 'pending' && <TouchableOpacity disabled={busy} style={styles.button} onPress={() => setPricing(item)}><Text style={styles.actionText}>Precificar pedido</Text></TouchableOpacity>}
               {item.status === 'pending' && <TouchableOpacity disabled={busy} style={styles.button} onPress={() => setDraft({ order: item, date: item.deliveryDate.slice(0, 10), items: item.items.map((product) => ({ ...product, input: String(product.quantity) })) })}><Text style={styles.actionText}>Editar</Text></TouchableOpacity>}
               {item.status === 'pending' && <TouchableOpacity disabled={busy} style={styles.button} onPress={() => cancelOrder(item)}><Text style={styles.danger}>Cancelar</Text></TouchableOpacity>}
               <TouchableOpacity style={styles.button} onPress={() => setHistoryId(historyId === item.id ? null : item.id)}><Text style={styles.actionText}>Histórico</Text></TouchableOpacity>
@@ -111,6 +114,7 @@ export default function PedidosScreen() {
           </View>}
         </View>;
       }} />
+    {pricing && <OrderPricingModal order={pricing} onClose={() => setPricing(null)} onSaved={refresh} />}
     <Modal visible={!!draft} animationType="slide" onRequestClose={() => !busy && setDraft(null)}>
       <SafeAreaView style={styles.screen}>
         <View style={styles.modalHeader}><Text style={styles.name}>Editar pedido</Text><TouchableOpacity disabled={busy} style={styles.button} onPress={() => setDraft(null)}><Text style={styles.actionText}>Fechar</Text></TouchableOpacity></View>

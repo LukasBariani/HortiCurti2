@@ -13,6 +13,7 @@ export const updatePricing = async (id: string, costPrice: number, margin: numbe
     await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${item.orderId} FOR UPDATE`;
     const order = await tx.order.findUniqueOrThrow({ where: { id: item.orderId }, include: orderInclude });
     if (order.status !== 'pending') throw new OrderError('Somente pedidos pendentes podem ser precificados.');
+    if (order.pricingMarkupPercent != null) throw new OrderError('Este pedido tem preços próprios. Altere pela tela do pedido.');
     const updated = await tx.order.updateMany({ where: { id: order.id, version: order.version }, data: { version: { increment: 1 } } });
     if (!updated.count) throw new OrderError('O pedido foi alterado. Atualize e tente novamente.', 409);
     const result = await tx.orderItem.update({ where: { id }, data: { costPrice, margin, salePrice } });

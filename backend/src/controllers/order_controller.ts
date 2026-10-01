@@ -1,3 +1,4 @@
+import { priceOrder as saveOrderPricing } from '../services/orderPricing_service';
 import * as service from '../services/order_service';
 import { Request, Response } from 'express';
 import { DeliveryDateError } from '../lib/delivery_date';
@@ -76,4 +77,9 @@ export const getTodayOrders = async (req: Request, res: Response) => {
       stack: error instanceof Error ? error.message : 'unknown',
     });
   }
+};
+
+export const priceOrder = async (req: Request, res: Response) => {
+  try { res.json(await saveOrderPricing(String(req.params.id), req.body)); }
+  catch (error) { res.status(error instanceof service.OrderError ? error.statusCode : 500).json({ error: error instanceof service.OrderError ? error.message : 'Não foi possível salvar os preços.' }); }
 };

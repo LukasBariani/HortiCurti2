@@ -2,10 +2,15 @@ import { todayInSaoPaulo } from '../utils/deliveryDate';
 import Constants from 'expo-constants';
 import { resolveApiUrl } from '../utils/apiUrl';
 
-const BASE_URL = resolveApiUrl(
+export const BASE_URL = resolveApiUrl(
   __DEV__ ? Constants.expoConfig?.hostUri : undefined,
-  process.env.EXPO_PUBLIC_API_URL,
+  Constants.expoConfig?.extra?.apiUrl ?? process.env.EXPO_PUBLIC_API_URL,
 );
+
+export function describeApiError(error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error);
+  return `Falha ao acessar ${BASE_URL}. Detalhe: ${detail}`;
+}
 
 export async function getListaConsolidada(date = todayInSaoPaulo()) {
   try {
@@ -49,32 +54,17 @@ export async function getClients() {
   }
 }
 
-export async function createClient(client: any) {
-  try {
-    console.log('Criando cliente:', client);
-
-    const response = await fetch(`${BASE_URL}/clients`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(client),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Erro na resposta:', response.status, errorData);
-      throw new Error(`HTTP error! status: ${response.status} - ${errorData}`);
-    }
-
-    const data = await response.json();
-    console.log('Cliente criado:', data);
-    return data;
-  } catch (error) {
-    console.error('Erro em createClient:', error);
-    throw error;
-  }
+export interface ClientInput { name: string; whatsappNumber: string; defaultMarkupPercent: number | null }
+async function saveClient(path: string, method: string, client: ClientInput) {
+  const response = await fetch(`${BASE_URL}/clients${path}`, {
+    method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(client),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Não foi possível salvar o cliente.');
+  return data;
 }
+export const createClient = (client: ClientInput) => saveClient('', 'POST', client);
+export const updateClient = (id: string, client: ClientInput) => saveClient(`/${id}`, 'PATCH', client);
 // src/services/api.ts
 
 export async function getClientInfo(clientId: string) {
@@ -89,6 +79,16 @@ export async function getClientInfo(clientId: string) {
     console.error('❌ Erro em getClientInfo:', error);
     throw error;
   }
+}
+
+export async function updateClientMarkup(clientId: string, defaultMarkupPercent: number | null) {
+  const response = await fetch(`${BASE_URL}/clients/${clientId}/markup`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ defaultMarkupPercent }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Não foi possível salvar o acréscimo.');
+  return data;
 }
 
 export async function getClientOrders(clientId: string) {
@@ -144,3 +144,5 @@ async function patchOrder(path: string, body: unknown) {
 export const updateOrderStatus = (id: string, status: string, version: number) => patchOrder(`${id}/status`, { status, version });
 export const deliverOrder = (id: string, body: { version: number; items: { id: string; missingQuantity: number; carryForward: boolean }[] }) => patchOrder(`${id}/deliver`, body);
 export const editOrder = (id: string, body: { version: number; deliveryDate?: string; items: { id: string; quantity: number }[] }) => patchOrder(id, body);
+
+export const priceOrder = (id: string, body: { version: number; markupPercent: number; items: { id: string; costPrice: number; salePrice?: number }[] }) => patchOrder(`${id}/pricing`, body);

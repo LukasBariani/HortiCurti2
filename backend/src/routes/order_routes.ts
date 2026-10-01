@@ -12,6 +12,7 @@ router.get('/', controller.getAllOrders);
 router.get('/today', controller.getTodayOrders);
 router.get('/delivery', controller.getOrdersByDeliveryDate);
 router.get('/:id', controller.getOrderById);
+router.patch('/:id/pricing', controller.priceOrder);
 router.patch('/:id/deliver', controller.deliverOrder);
 router.patch('/:id/status', controller.patchStatus);
 router.patch('/:id', controller.patchOrder);

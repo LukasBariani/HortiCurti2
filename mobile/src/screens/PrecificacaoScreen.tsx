@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DeliveryDateSelector from '../components/DeliveryDateSelector';
 import ScreenHeader from '../components/ScreenHeader';
 import StateView from '../components/StateView';
-import { getListaConsolidada, updateOrderItemPricing } from '../services/api';
+import { getListaConsolidada, getOrdersByDeliveryDate, updateOrderItemPricing } from '../services/api';
 import { ThemeColors, useTheme, useThemedStyles } from '../theme';
 import { todayInSaoPaulo } from '../utils/deliveryDate';
 
@@ -29,7 +29,9 @@ export default function PrecificacaoScreen() {
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const data = await getListaConsolidada(date);
+      const [consolidated, orders] = await Promise.all([getListaConsolidada(date), getOrdersByDeliveryDate(date)]);
+      const eligible = new Set(orders.filter((order: any) => order.status === 'pending' && order.pricingMarkupPercent == null).flatMap((order: any) => order.items.map((item: any) => item.id)));
+      const data = consolidated.map((item: any) => ({ ...item, itemIds: item.itemIds.filter((id: string) => eligible.has(id)) })).filter((item: any) => item.itemIds.length);
       setItems(data.map((item: any) => {
         const cost = item.costPrice == null ? '' : String(item.costPrice);
         const margin = item.margin == null ? '30' : String(item.margin);
@@ -77,7 +79,7 @@ export default function PrecificacaoScreen() {
 
   const priced = items.filter((item) => item.cost !== '').length;
   return <SafeAreaView style={styles.screen} edges={['top']}>
-    <ScreenHeader title="Precificação" subtitle={`${priced} de ${items.length} produtos preenchidos`} action={<TouchableOpacity disabled={saving} onPress={save} style={styles.save}><Text style={styles.saveText}>{saving ? 'Salvando…' : 'Salvar'}</Text></TouchableOpacity>} />
+    <ScreenHeader title="Precificação" subtitle="Preços gerais · pedidos com preços próprios ficam em Pedidos" action={<TouchableOpacity disabled={saving} onPress={save} style={styles.save}><Text style={styles.saveText}>{saving ? 'Salvando…' : 'Salvar'}</Text></TouchableOpacity>} />
     <DeliveryDateSelector date={date} onChange={setDate} onRefresh={load} />
     <View style={styles.modeSection}>
       <Text style={styles.modeTitle}>Como deseja informar o lucro?</Text>

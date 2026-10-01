@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:15
     container_name: horticurti_db
-    restart: always
+    restart: "no"
     ports:
       - "5432:5432"
     environment:

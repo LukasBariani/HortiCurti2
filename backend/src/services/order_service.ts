@@ -14,7 +14,7 @@ export const orderInclude = {
 };
 export const snapshotOrder = (order: any) => JSON.parse(JSON.stringify({
   status: order.status, deliveryDate: order.deliveryDate, deliveredAt: order.deliveredAt,
-  version: order.version, items: order.items,
+  pricingMarkupPercent: order.pricingMarkupPercent, version: order.version, items: order.items,
   originatedBackorders: order.originatedBackorders ?? [],
   receivedBackorders: order.receivedBackorders ?? [],
 }));

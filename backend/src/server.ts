@@ -6,8 +6,9 @@ import { initZap } from './services/whatsapp_service';
 const app = createApp();
 
 const port = process.env.PORT || 3000;
+const host = process.env.HOST || '0.0.0.0';
 
-app.listen(port, () => {
-  console.log(` server running at http://localhost:${port}`);
+app.listen(Number(port), host, () => {
+  console.log(` server running at http://${host}:${port}`);
   initZap();
 });

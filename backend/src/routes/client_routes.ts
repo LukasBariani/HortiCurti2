@@ -6,6 +6,8 @@ const router = Router();
 
 //post
 router.post('/', controller.createClient);
+router.patch('/:id/markup', controller.updateClientMarkup);
+router.patch('/:id', controller.updateClient);
 
 //gett
 router.get('/', controller.getAllClients);
